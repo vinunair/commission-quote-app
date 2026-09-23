@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+vendor:
+  api-key: local-dev-secret
+  base-url: http://localhost:8080
+  error-rate-percent: 20
+  connect-timeout-ms: 3000
+  read-timeout-ms: 3000
+
+logging:
+  level:
+    com.example.commissionquote: INFO
+
+springdoc:
+  # Only document the app's own API; the vendor mock is an internal stand-in.
+  paths-to-match: /api/**
+  swagger-ui:
+    path: /swagger-ui.html
