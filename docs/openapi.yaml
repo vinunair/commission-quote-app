@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Commission Quote API
+  description: Generates commission quotes for loans by calling the external commission
+    vendor.
+  version: v1
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: Quotes
+  description: Commission quote generation
+paths:
+  /api/quotes:
+    post:
+      tags:
+      - Quotes
+      summary: Generate a commission quote
+      description: Validates the loan details and requests a commission quote from
+        the vendor.
+      operationId: generateQuote
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanQuoteRequest"
+        required: true
+      responses:
+        "200":
+          description: Quote generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteResponse"
+        "400":
+          description: Invalid loan details or malformed request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+              example:
+                message: "loanAmount: loanAmount must be greater than 0"
+        "502":
+          description: "Vendor failed, timed out or was unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+              example:
+                message: Unable to generate quote right now. Please try again.
+components:
+  schemas:
+    LoanQuoteRequest:
+      type: object
+      description: Loan details to quote a commission for
+      properties:
+        loanAmount:
+          type: number
+          description: Loan amount in dollars
+          example: 10000.0
+          minimum: 0.01
+        loanTermInMonths:
+          type: integer
+          format: int32
+          description: Loan term in months
+          example: 36
+          maximum: 480
+          minimum: 1
+        riskBand:
+          type: string
+          description: Risk band of the borrower
+          enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+          example: MEDIUM
+      required:
+      - loanAmount
+      - loanTermInMonths
+      - riskBand
+    ApiErrorResponse:
+      type: object
+      description: Error returned for any failed request
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+    QuoteResponse:
+      type: object
+      description: Commission quote returned by the vendor
+      properties:
+        quoteId:
+          type: string
+          description: Vendor-issued quote identifier
+          example: dbec8c56-07f9-4d21-946e-ca603d81b6f8
+        commissionRate:
+          type: number
+          description: Commission rate as a fraction (0.025 = 2.5%)
+          example: 0.025
+        totalCommission:
+          type: number
+          description: Total commission in dollars
+          example: 250.0
