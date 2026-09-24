@@ -17,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.UUID;
 
 /**
@@ -40,7 +42,7 @@ public class VendorMockController {
             @RequestHeader(value = "api-key", required = false) String apiKey,
             @Valid @RequestBody LoanQuoteRequest request) {
 
-        if (apiKey == null || !apiKey.equals(vendorProperties.apiKey())) {
+        if (!isValidApiKey(apiKey)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or invalid api-key");
         }
 
@@ -55,6 +57,17 @@ public class VendorMockController {
 
         QuoteResponse response = new QuoteResponse(UUID.randomUUID().toString(), commissionRate, totalCommission);
         return ResponseEntity.ok(response);
+    }
+
+    // Constant-time comparison so response timing doesn't reveal how much of a guessed key matched.
+    // The caller's key goes first: isEqual's run time depends on the first argument's length.
+    private boolean isValidApiKey(String providedKey) {
+        if (providedKey == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                providedKey.getBytes(StandardCharsets.UTF_8),
+                vendorProperties.apiKey().getBytes(StandardCharsets.UTF_8));
     }
 
     private BigDecimal commissionRateFor(RiskBand riskBand) {

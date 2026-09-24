@@ -4,7 +4,7 @@ A small web app where a staff member enters loan details (amount, term, risk ban
 
 ## Prerequisites
 
-- JDK 21 (e.g. `brew install openjdk@21`)
+- JDK 21 (any distribution, e.g. [Eclipse Temurin](https://adoptium.net))
 - Nothing else. Gradle runs through the included wrapper, and the frontend is plain HTML/JS with no build step.
 
 ## Running
@@ -14,6 +14,8 @@ A small web app where a staff member enters loan details (amount, term, risk ban
 ```
 
 Then open <http://localhost:8080>.
+
+To use a different port, run `./gradlew bootRun --args='--server.port=9090'` (or set `SERVER_PORT`). The vendor mock URL follows the app's port automatically.
 
 ## API documentation (OpenAPI / Swagger)
 
@@ -38,7 +40,7 @@ The spec is generated from the code by [springdoc-openapi](https://springdoc.org
 
 ## Architecture
 
-One Spring Boot app on port 8080 exposes two APIs:
+One Spring Boot app (port 8080 by default) exposes two APIs:
 
 ```
 Browser (static HTML + fetch)
@@ -58,11 +60,13 @@ QuoteController ── validates ──▶ VendorClient (RestClient, 3s timeouts
 |---|---|
 | `controller/QuoteController` | The app's API used by the UI |
 | `controller/VendorMockController` | Stand-in for the vendor API, which isn't available yet |
-| `client/VendorClient` | Calls the vendor, adds the `api-key` header, and turns any failure into `VendorUnavailableException` |
+| `client/VendorClient` | Calls the vendor, adds the `api-key` header, and turns any failure (error status, timeout, empty or incomplete response) into `VendorUnavailableException` |
 | `service/VendorErrorSimulator` | Decides whether a vendor call fails at random. Kept separate so tests can control it |
-| `exception/GlobalExceptionHandler` | Maps errors to consistent JSON `{ "message": ... }` responses |
+| `exception/GlobalExceptionHandler` | Maps errors to consistent JSON `{ "message": ... }` responses. Spring's own web errors (404, 405, 415) keep their status; only unexpected errors become a logged 500 |
 | `config/VendorProperties` | Vendor settings from `application.yml` |
+| `config/OpenApiConfig` | Title and description for the generated OpenAPI spec |
 | `resources/static/` | `index.html`, `app.js`, `style.css` |
+| `docs/openapi.yaml` | Exported copy of the OpenAPI spec |
 
 ### Configuration (`application.yml`)
 
@@ -87,18 +91,23 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 | Scenario | Behaviour |
 |---|---|
 | Missing field, `loanAmount <= 0`, term outside 1–480 months | `400` with a field-level message shown in the UI. The vendor is never called |
-| `loanAmount` over 100,000,000 or more than 2 decimal places (including huge scientific-notation values like `1e999999999`) | `400`, rejected before any calculation, so an 11-character input can't expand into a billion-digit number |
+| `loanAmount` over 100,000,000, or more than 9 whole digits or 2 decimal places (including huge scientific-notation values like `1e999999999`) | `400`, rejected before any calculation, so an 11-character input can't expand into a billion-digit number |
 | Unknown risk band or malformed JSON | `400` "Malformed request body or invalid field value" |
 | Vendor returns an error (simulated 503, 401, etc.) | `502` "Unable to generate quote right now. Please try again." |
 | Vendor times out or can't be reached | Same `502`, after the 3s timeout |
+| Vendor returns success with an empty or incomplete body | Same `502`, and the cause is logged. Without this, the UI would show a blank quote with 0% and $0.00 |
+| Wrong HTTP method, non-JSON body, or unknown path | `405`, `415` or `404` with a message, not a `500` |
 | Server can't be reached from the browser | UI shows a connection error message |
 | Double submit | The button is disabled while a request is in flight |
 
 ## Tests
 
-- `QuoteControllerTest`: happy path, vendor failure → 502, validation errors, unknown risk band
-- `VendorMockControllerTest`: missing or wrong api-key → 401, forced failure → 503, correct commission calculation
-- `VendorClientTest`: sends the api-key header, and turns error statuses and timeouts into `VendorUnavailableException`
+23 tests in total:
+
+- `QuoteControllerTest` (10): happy path, vendor failure → 502, validation errors, unknown risk band, oversized `loanAmount` (`1e999999999`) and too many decimal places → 400, wrong method → 405, non-JSON body → 415, unknown path → 404
+- `VendorMockControllerTest` (7): missing, wrong, same-length-but-wrong or prefix-only api-key → 401 (checked in constant time), forced failure → 503, correct commission calculation, oversized `loanAmount` rejected before any calculation
+- `VendorClientTest` (5): sends the api-key header; turns error statuses, timeouts, empty bodies and incomplete bodies into `VendorUnavailableException`
+- `CommissionQuoteAppApplicationTests` (1): the application context starts
 
 ## Possible improvements (out of scope for the timebox)
 
@@ -106,6 +115,13 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 - Structured logging and a correlation ID on vendor calls
 - Keep the real vendor API key out of `application.yml` (use an environment variable or secret store)
 - Frontend tests
+- Enable the vendor mock and Swagger UI only outside production (e.g. `@Profile("dev")`)
+- API versioning
+- circuit breaker and bulkhead config
+- Switch vendors
+- Rate limiting
+
+
 
 ## AI Usage
 
@@ -114,7 +130,13 @@ I used Claude Code (Anthropic) as a coding assistant during this challenge. It h
 
 - Plan the architecture and project layout
 - Generate the Spring Boot skeleton and write the backend classes, the static frontend (HTML/JS/CSS) and the tests
-- Find a bug where the catch-all exception handler was turning the vendor mock's 401/503 responses into 500s
+- Add OpenAPI/Swagger documentation
 - Draft this README
 
-I reviewed the generated code, ran the app and tests locally, and <describe what you changed/decided yourself>.
+I reviewed the generated code, ran the app and tests locally, and 
+- catch-all exception handler was turning the vendor mock's 401/503 responses into 500s
+- unbounded `loanAmount` values
+- handled case for incomplete vendor responses
+
+
+
