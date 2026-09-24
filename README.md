@@ -102,11 +102,12 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 
 ## Tests
 
-23 tests in total:
+26 tests in total:
 
 - `QuoteControllerTest` (10): happy path, vendor failure → 502, validation errors, unknown risk band, oversized `loanAmount` (`1e999999999`) and too many decimal places → 400, wrong method → 405, non-JSON body → 415, unknown path → 404
 - `VendorMockControllerTest` (7): missing, wrong, same-length-but-wrong or prefix-only api-key → 401 (checked in constant time), forced failure → 503, correct commission calculation, oversized `loanAmount` rejected before any calculation
 - `VendorClientTest` (5): sends the api-key header; turns error statuses, timeouts, empty bodies and incomplete bodies into `VendorUnavailableException`
+- `QuoteFlowIntegrationTest` (3): end to end over real HTTP, from `/api/quotes` through `VendorClient` to the vendor mock with its api-key check. Covers a successful quote, a vendor failure → 502, and invalid input → 400 without the vendor being called. Only the random-failure decision is controlled; the rest is the production wiring and config
 - `CommissionQuoteAppApplicationTests` (1): the application context starts
 
 ## Possible improvements (out of scope for the timebox)
