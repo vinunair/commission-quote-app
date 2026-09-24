@@ -69,7 +69,7 @@ QuoteController ── validates ──▶ VendorClient (RestClient, 3s timeouts
 | Property | Default | Meaning |
 |---|---|---|
 | `vendor.api-key` | `local-dev-secret` | Key the client sends and the mock checks |
-| `vendor.base-url` | `http://localhost:8080` | Where the vendor API lives. Point it at the real vendor later |
+| `vendor.base-url` | `http://localhost:${server.port:8080}` | Where the vendor API lives. Defaults to this app's own port (the mock), so changing `server.port` or `SERVER_PORT` still works. Point it at the real vendor later |
 | `vendor.error-rate-percent` | `20` | Chance (%) that the mock returns a failure |
 | `vendor.connect-timeout-ms` / `read-timeout-ms` | `3000` | Client timeouts for vendor calls |
 
