@@ -19,16 +19,27 @@ public class VendorClient {
         this.vendorProperties = vendorProperties;
     }
 
+    private static final String FAILURE_MESSAGE = "Unable to generate quote right now. Please try again.";
+
     public QuoteResponse requestQuote(LoanQuoteRequest request) {
+        QuoteResponse quote;
         try {
-            return vendorRestClient.post()
+            quote = vendorRestClient.post()
                     .uri("/vendor/commission-quote")
                     .header("api-key", vendorProperties.apiKey())
                     .body(request)
                     .retrieve()
                     .body(QuoteResponse.class);
         } catch (RestClientException e) {
-            throw new VendorUnavailableException("Unable to generate quote right now. Please try again.", e);
+            throw new VendorUnavailableException(FAILURE_MESSAGE, e);
         }
+
+        // A 2xx with an empty or partial body would otherwise reach the UI as a blank/$0.00 quote.
+        if (quote == null || quote.quoteId() == null
+                || quote.commissionRate() == null || quote.totalCommission() == null) {
+            throw new VendorUnavailableException(FAILURE_MESSAGE,
+                    new IllegalStateException("Vendor returned an incomplete quote: " + quote));
+        }
+        return quote;
     }
 }
