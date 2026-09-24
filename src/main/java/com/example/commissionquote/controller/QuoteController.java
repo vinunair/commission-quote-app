@@ -35,7 +35,7 @@ public class QuoteController {
     @ApiResponse(responseCode = "400", description = "Invalid loan details or malformed request body",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class),
                     examples = @ExampleObject(value = """
-                            {"message": "loanAmount: loanAmount must be greater than 0"}""")))
+                            {"message": "Loan amount must be greater than 0."}""")))
     @ApiResponse(responseCode = "502", description = "Vendor failed, timed out or was unreachable",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class),
                     examples = @ExampleObject(value = """

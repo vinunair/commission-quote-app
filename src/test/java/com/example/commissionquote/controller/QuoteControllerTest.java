@@ -64,7 +64,7 @@ class QuoteControllerTest {
                                 {"loanAmount": -5, "loanTermInMonths": 36, "riskBand": "LOW"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("loanAmount must be greater than 0")));
+                .andExpect(jsonPath("$.message").value("Loan amount must be greater than 0."));
 
         verify(vendorClient, never()).requestQuote(any());
     }
@@ -76,8 +76,7 @@ class QuoteControllerTest {
                                 {"loanAmount": 1000, "loanTermInMonths": 600}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("loanTermInMonths must be at most 480")))
-                .andExpect(jsonPath("$.message", containsString("riskBand is required")));
+                .andExpect(jsonPath("$.message").value("Loan term must be at most 480 months. Risk band is required."));
     }
 
     @Test
@@ -87,7 +86,7 @@ class QuoteControllerTest {
                                 {"loanAmount": 1000, "loanTermInMonths": 12, "riskBand": "EXTREME"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Malformed request body or invalid field value"));
+                .andExpect(jsonPath("$.message").value("The loan details could not be read. Please check them and try again."));
     }
 
     @Test
@@ -118,7 +117,7 @@ class QuoteControllerTest {
                                 {"loanAmount": 1e999999999, "loanTermInMonths": 36, "riskBand": "LOW"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("loanAmount must be at most 100000000")));
+                .andExpect(jsonPath("$.message", containsString("Loan amount must be at most 100,000,000")));
 
         verify(vendorClient, never()).requestQuote(any());
     }
@@ -130,6 +129,6 @@ class QuoteControllerTest {
                                 {"loanAmount": 1000.001, "loanTermInMonths": 36, "riskBand": "LOW"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("loanAmount must have at most 9 whole digits and 2 decimal places")));
+                .andExpect(jsonPath("$.message", containsString("Loan amount can have at most 9 whole digits and 2 decimal places")));
     }
 }

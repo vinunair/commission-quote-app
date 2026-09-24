@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,16 +21,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        // Messages are written for the end user (see LoanQuoteRequest). Sorted because the
+        // validator's error order is not stable.
         String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-                .collect(Collectors.joining("; "));
+                .map(FieldError::getDefaultMessage)
+                .distinct()
+                .sorted()
+                .collect(Collectors.joining(". ", "", "."));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiErrorResponse(message));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiErrorResponse> handleUnreadable(HttpMessageNotReadableException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiErrorResponse("Malformed request body or invalid field value"));
+                .body(new ApiErrorResponse("The loan details could not be read. Please check them and try again."));
     }
 
     @ExceptionHandler(VendorUnavailableException.class)
