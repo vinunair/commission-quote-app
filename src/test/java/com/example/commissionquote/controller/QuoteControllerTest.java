@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,5 +88,26 @@ class QuoteControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Malformed request body or invalid field value"));
+    }
+
+    @Test
+    void returnsMethodNotAllowedForWrongHttpMethod() throws Exception {
+        mockMvc.perform(get("/api/quotes"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.message", containsString("GET")));
+    }
+
+    @Test
+    void returnsUnsupportedMediaTypeForNonJsonBody() throws Exception {
+        mockMvc.perform(post("/api/quotes").contentType(MediaType.TEXT_PLAIN).content("loanAmount=1000"))
+                .andExpect(status().isUnsupportedMediaType());
+
+        verify(vendorClient, never()).requestQuote(any());
+    }
+
+    @Test
+    void returnsNotFoundForMissingResource() throws Exception {
+        mockMvc.perform(get("/favicon.ico"))
+                .andExpect(status().isNotFound());
     }
 }
