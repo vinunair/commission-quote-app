@@ -126,18 +126,26 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 
 ## AI Usage
 
-I used Claude Code (Anthropic) as a coding assistant during this challenge. It helped me:
+I used **Claude Code** (Anthropic) as a coding assistant, with me directing the work and making the decisions.
 
-- Plan the architecture and project layout
-- Generate the Spring Boot skeleton and write the backend classes, the static frontend (HTML/JS/CSS) and the tests
-- Add OpenAPI/Swagger documentation
-- Draft this README
+### Design and direction
+- Set the requirements and chose the architecture: Spring Boot and Java (my strongest stack), one app with the vendor mock called over real HTTP so the `api-key` check and timeouts behave like a real integration, and a plain HTML/JS frontend with no framework.
+- Had Claude produce an implementation plan to my constraints, then generate the code, tests and OpenAPI docs from it.
 
-I reviewed the generated code, ran the app and tests locally, and 
-- catch-all exception handler was turning the vendor mock's 401/503 responses into 500s
-- unbounded `loanAmount` values
-- handled case for incomplete vendor responses
-- Hardening the comparison of api-key with MessageDigest.isEqual instead of String.equals
+### Review and hardening
+I treated the generated code as a first draft and put it through several review passes:
+- **Ran the app and tests locally** and checked success, validation and vendor-failure cases. [check]
+- **Questioned the design** until I was confident in each choice and its trade-offs, e.g. POST vs GET for quotes, `ThreadLocalRandom` for the failure simulation, and keeping the vendor mock in the same app.
+- **Ran automated code and security reviews** with Claude Code, judged each finding, and directed the fixes, each backed by tests:
+  - Spring's own 404/405/415 errors were being returned as 500s by the catch-all handler.
+  - `loanAmount` had no size limit, so `1e999999999` could tie up CPU and memory.
+  - Empty or incomplete vendor responses reached the UI as a blank $0.00 quote.
+  - The vendor URL was hardcoded to port 8080, so changing the port broke every quote.
+  - The api-key comparison wasn't constant-time.
+- **Reviewed the result against the brief** and closed the gaps I found: plain-English validation messages for users, and an end-to-end integration test covering the full path over real HTTP.
+- **Chose what not to fix** within the timebox, and documented it under *Possible improvements*.
+
+I understand the code in this repository and can walk through any part of it and the reasoning behind it.
 
 
 
