@@ -137,6 +137,7 @@ I reviewed the generated code, ran the app and tests locally, and
 - catch-all exception handler was turning the vendor mock's 401/503 responses into 500s
 - unbounded `loanAmount` values
 - handled case for incomplete vendor responses
+- Hardening the comparison of api-key with MessageDigest.isEqual instead of String.equals
 
 
 
