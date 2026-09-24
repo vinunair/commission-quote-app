@@ -87,6 +87,7 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 | Scenario | Behaviour |
 |---|---|
 | Missing field, `loanAmount <= 0`, term outside 1–480 months | `400` with a field-level message shown in the UI. The vendor is never called |
+| `loanAmount` over 100,000,000 or more than 2 decimal places (including huge scientific-notation values like `1e999999999`) | `400`, rejected before any calculation, so an 11-character input can't expand into a billion-digit number |
 | Unknown risk band or malformed JSON | `400` "Malformed request body or invalid field value" |
 | Vendor returns an error (simulated 503, 401, etc.) | `502` "Unable to generate quote right now. Please try again." |
 | Vendor times out or can't be reached | Same `502`, after the 3s timeout |

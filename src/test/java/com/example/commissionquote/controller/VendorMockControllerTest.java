@@ -66,4 +66,14 @@ class VendorMockControllerTest {
                 .andExpect(jsonPath("$.commissionRate").value(0.040))
                 .andExpect(jsonPath("$.totalCommission").value(400.00));
     }
+
+    @Test
+    void rejectsHugeLoanAmountBeforeCalculating() throws Exception {
+        mockMvc.perform(post("/vendor/commission-quote").header("api-key", "test-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"loanAmount": 1e999999999, "loanTermInMonths": 36, "riskBand": "HIGH"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
 }

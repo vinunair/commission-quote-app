@@ -58,6 +58,7 @@ components:
           type: number
           description: Loan amount in dollars
           example: 10000.0
+          maximum: 100000000.00
           minimum: 0.01
         loanTermInMonths:
           type: integer
