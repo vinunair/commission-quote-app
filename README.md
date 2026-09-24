@@ -82,7 +82,7 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 ## Design decisions
 
 - **The vendor mock runs in the same app but is called over real HTTP.** One process keeps the app easy to run, and the real HTTP call means the `api-key` header, error statuses and timeouts behave as they would against the real vendor. Switching to the real vendor only means changing `vendor.base-url` and `vendor.api-key`.
-- **Commission rates are fixed per risk band in the mock** (LOW 1.5%, MEDIUM 2.5%, HIGH 4.0%). `totalCommission = loanAmount × rate`, rounded to cents. The real vendor will own this logic.
+- **The mock's commission rate depends on risk band and loan term.** Base rate by risk band: LOW 1.5%, MEDIUM 2.5%, HIGH 4.0%. Then a term adjustment: +0.5% for terms under 12 months, none for 12–60 months, −0.5% for terms over 60 months (e.g. HIGH over 36 months is 4.0%, over 61 months 3.5%). Shorter loans pay a higher rate because the lender earns interest for less time, so there is less ongoing value to share. `totalCommission = loanAmount × rate`, rounded to cents. The brief doesn't define pricing, so this is an illustrative rule; the real vendor will own this logic.
 - **Money uses `BigDecimal`** to avoid floating-point rounding errors.
 - **Frontend has no framework.** One form doesn't need React or a build pipeline.
 
@@ -102,10 +102,10 @@ Any property can be overridden at launch, e.g. `./gradlew bootRun --args='--vend
 
 ## Tests
 
-26 tests in total:
+32 tests in total:
 
 - `QuoteControllerTest` (10): happy path, vendor failure → 502, validation errors, unknown risk band, oversized `loanAmount` (`1e999999999`) and too many decimal places → 400, wrong method → 405, non-JSON body → 415, unknown path → 404
-- `VendorMockControllerTest` (7): missing, wrong, same-length-but-wrong or prefix-only api-key → 401 (checked in constant time), forced failure → 503, correct commission calculation, oversized `loanAmount` rejected before any calculation
+- `VendorMockControllerTest` (13): missing, wrong, same-length-but-wrong or prefix-only api-key → 401 (checked in constant time), forced failure → 503, correct commission calculation, term adjustment at each tier boundary (1, 11, 12, 60, 61 and 480 months, as one parameterized test), oversized `loanAmount` rejected before any calculation
 - `VendorClientTest` (5): sends the api-key header; turns error statuses, timeouts, empty bodies and incomplete bodies into `VendorUnavailableException`
 - `QuoteFlowIntegrationTest` (3): end to end over real HTTP, from `/api/quotes` through `VendorClient` to the vendor mock with its api-key check. Covers a successful quote, a vendor failure → 502, and invalid input → 400 without the vendor being called. Only the random-failure decision is controlled; the rest is the production wiring and config
 - `CommissionQuoteAppApplicationTests` (1): the application context starts

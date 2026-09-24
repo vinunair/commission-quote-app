@@ -50,7 +50,9 @@ public class VendorMockController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Vendor service temporarily unavailable");
         }
 
-        BigDecimal commissionRate = commissionRateFor(request.riskBand());
+        BigDecimal commissionRate = commissionRateFor(request.riskBand())
+                .add(termAdjustmentFor(request.loanTermInMonths()));
+
         BigDecimal totalCommission = request.loanAmount()
                 .multiply(commissionRate)
                 .setScale(2, RoundingMode.HALF_UP);
@@ -76,5 +78,15 @@ public class VendorMockController {
             case MEDIUM -> new BigDecimal("0.025");
             case HIGH -> new BigDecimal("0.040");
         };
+    }
+
+    private BigDecimal termAdjustmentFor(int termInMonths) {
+        if (termInMonths < 12) {
+            return new BigDecimal("0.005");
+        } else if (termInMonths > 60) {
+            return new BigDecimal("-0.005");
+        } else {
+            return BigDecimal.ZERO;
+        }
     }
 }
