@@ -110,4 +110,26 @@ class QuoteControllerTest {
         mockMvc.perform(get("/favicon.ico"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void rejectsHugeLoanAmountInScientificNotation() throws Exception {
+        mockMvc.perform(post("/api/quotes").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"loanAmount": 1e999999999, "loanTermInMonths": 36, "riskBand": "LOW"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("loanAmount must be at most 100000000")));
+
+        verify(vendorClient, never()).requestQuote(any());
+    }
+
+    @Test
+    void rejectsLoanAmountWithTooManyDecimalPlaces() throws Exception {
+        mockMvc.perform(post("/api/quotes").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"loanAmount": 1000.001, "loanTermInMonths": 36, "riskBand": "LOW"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("loanAmount must have at most 9 whole digits and 2 decimal places")));
+    }
 }
