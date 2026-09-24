@@ -134,7 +134,7 @@ I used **Claude Code** (Anthropic) as a coding assistant, with me directing the 
 
 ### Review and hardening
 I treated the generated code as a first draft and put it through several review passes:
-- **Ran the app and tests locally** and checked success, validation and vendor-failure cases. [check]
+- **Ran the app and the test suite locally** throughout, and had every change verified against the running app: successful quotes, validation errors, the api-key check and the random vendor failures.
 - **Questioned the design** until I was confident in each choice and its trade-offs, e.g. POST vs GET for quotes, `ThreadLocalRandom` for the failure simulation, and keeping the vendor mock in the same app.
 - **Ran automated code and security reviews** with Claude Code, judged each finding, and directed the fixes, each backed by tests:
   - Spring's own 404/405/415 errors were being returned as 500s by the catch-all handler.
