@@ -73,4 +73,22 @@ class VendorClientTest {
         assertThatThrownBy(() -> vendorClient.requestQuote(REQUEST))
                 .isInstanceOf(VendorUnavailableException.class);
     }
+
+    @Test
+    void rejectsSuccessWithEmptyBody() {
+        vendorServer.expect(requestTo(VENDOR_URL)).andRespond(withSuccess());
+
+        assertThatThrownBy(() -> vendorClient.requestQuote(REQUEST))
+                .isInstanceOf(VendorUnavailableException.class)
+                .hasRootCauseMessage("Vendor returned an incomplete quote: null");
+    }
+
+    @Test
+    void rejectsSuccessWithMissingFields() {
+        vendorServer.expect(requestTo(VENDOR_URL)).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> vendorClient.requestQuote(REQUEST))
+                .isInstanceOf(VendorUnavailableException.class)
+                .hasRootCauseInstanceOf(IllegalStateException.class);
+    }
 }
