@@ -46,6 +46,20 @@ class VendorMockControllerTest {
     }
 
     @Test
+    void rejectsSameLengthKeyDifferingOnlyInLastCharacter() throws Exception {
+        mockMvc.perform(post("/vendor/commission-quote").header("api-key", "test-kez")
+                        .contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectsKeyThatIsPrefixOfValidKey() throws Exception {
+        mockMvc.perform(post("/vendor/commission-quote").header("api-key", "test")
+                        .contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void returnsServiceUnavailableWhenSimulatedFailureTriggers() throws Exception {
         when(errorSimulator.shouldFail()).thenReturn(true);
 
